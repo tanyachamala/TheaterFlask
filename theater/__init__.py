@@ -43,4 +43,3 @@ def create_app(test_config=None):
         db.create_all()
 
     return app
-

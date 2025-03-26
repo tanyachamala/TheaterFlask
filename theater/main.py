@@ -85,5 +85,3 @@ def reservation_post():
     db.session.commit()
     flash("You have bought %s tickets for %s"%(choosen_num_seats, projection.movie.title), 'success')
     return redirect(url_for("main.index"))
-
-

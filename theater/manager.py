@@ -1,10 +1,11 @@
-# Only view for manager user
+# Only view for manager use
 from flask import request, redirect, url_for, render_template, Blueprint, flash
 from flask_login import current_user
 import flask_login
 from . import model
 from datetime import date, timedelta
 from . import db 
+from . import db
 from functools import wraps
 from datetime import datetime
 from flask.json import jsonify
@@ -130,6 +131,11 @@ def manager_reservations_auxiliar():
 
 def compute_reserved_seats(id):
     projection = model.Projection.query.filter(model.Projection.id == id).one()
+    
+    # Safeguard: Ensure screen.num_total_seats is not None
+    num_total_seats = projection.screen.num_total_seats if projection.screen.num_total_seats is not None else 0
+    
+    # Sum reserved seats from the reservations
     sum_result = db.session.query(
         db.func.sum(model.Reservation.num_seats).label('reserved')
     ).filter(
@@ -145,12 +151,18 @@ def compute_reserved_seats(id):
     #     num_reserved_seats = lst[1]
     #     if lst[0] == id:
     #         num_free_seats = projection.screen.num_total_seats - num_reserved_seats
-    #         return  num_free_seats          
+    #         return  num_free_seats
     return  num_free_seats
 
 
 
 
+    
+    num_reserved_seats = sum_result.reserved if sum_result.reserved is not None else 0
+    
+    # Calculate free seats
+    num_free_seats = num_total_seats - num_reserved_seats
+    return num_free_seats
 
 
 # AJAX
@@ -166,5 +178,3 @@ def process_ajax():
             results[proj.id] = seats
         result = results
     return jsonify(result=result)
-
-
