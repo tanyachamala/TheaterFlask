@@ -1,7 +1,7 @@
 ​Yes, the TheaterWebFlask application can be run in a development environment. Here's how you can set it up:​
 
 Clone the Repository: Begin by cloning the project from GitHub:
-git clone https://github.com/vvarodi/TheaterWebFlask.git
+git clone https://github.com/tanyachamala/TheaterFlask.git
 
 
 Navigate to the Project Directory: Move into the project's root directory:
