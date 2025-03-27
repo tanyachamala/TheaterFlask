@@ -1,45 +1,47 @@
-from flask import Flask # making available the code we need to build web apps with flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_user, logout_user, login_required
+from . import db
+from .model import User
+from werkzeug.security import generate_password_hash, check_password_hash
+from . import bcrypt
 
-db = SQLAlchemy() # db object will be used to access the database when needed
-bcrypt = Bcrypt()
+bp = Blueprint('auth', __name__)
 
-def create_app(test_config=None):
-    app = Flask(__name__) # create an instance of the Flask class for our web app
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and bcrypt.check_password_hash(user.password, password):
+            login_user(user)
+            flash('Login successful', 'success')
+            return redirect(url_for('main.index'))
+        else:
+            flash('Login unsuccessful. Please check username and password.', 'danger')
+    return render_template('auth/login.html')
 
-    # set configuration variables
-    app.config["SECRET_KEY"] = b"\x8c\xa5\x04\xb3\x8f\xa1<\xef\x9bY\xca/*\xff\x12\xfb"
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///myDB.db' #path to database and its name
-    # app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+mysqldb://22_appweb_31:9JoOBTaL@mysql.lab.it.uc3m.es/22_appweb_31c"
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False #to supress warnings
-    
-    # register db to the current app
-    db.init_app(app)
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('auth.login'))
 
+@bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
-    # User Authentication
-    login_manager = LoginManager()
-    login_manager.login_view = 'auth.login'
-    # login_manager.login_message = "Login or Change role."
-    login_manager.init_app(app)
-    from . import model
-    @login_manager.user_loader
-    def load_user(user_id):
-        return model.User.query.get(int(user_id))
+        user = User(username=username, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
 
-    # register blueprints
-    
-    from . import main
-    from . import auth
-    from . import manager
-    app.register_blueprint(main.bp)
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(manager.bp)
+        flash('Your account has been created!', 'success')
+        return redirect(url_for('auth.login'))
 
-     # Create Database Models
-    with app.app_context():
-        db.create_all()
-
-    return app
+    return render_template('auth/signup.html')
